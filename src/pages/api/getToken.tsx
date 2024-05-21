@@ -1,9 +1,16 @@
-import 'server-only';
 import { KJUR } from "jsrsasign";
+import { NextApiRequest, NextApiResponse } from "next";
 
-export async function getData(slug: string) {
-  const JWT = await generateSignature(slug, 1);
-  return JWT;
+export default function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<{ sdkJWT: string }>
+) {
+  const { sessionName, role } = req.query;
+  const sdkJWT = generateSignature(
+    sessionName as string,
+    parseInt(role as string)
+  );
+  res.status(200).json({ sdkJWT });
 }
 
 function generateSignature(sessionName: string, role: number) {
