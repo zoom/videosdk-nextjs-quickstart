@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState } from "react";
+import { CSSProperties, useRef, useState } from "react";
 import ZoomVideo, {
   type VideoClient,
   VideoQuality,
@@ -16,10 +16,10 @@ const Videocall = (props: { slug: string; JWT: string }) => {
   const [inCall, setInCall] = useState(false);
   const client = useRef<typeof VideoClient>(ZoomVideo.createClient());
   const [isVideoMuted, setIsVideoMuted] = useState(
-    !client.current.getCurrentUserInfo()?.bVideoOn
+    !client.current.getCurrentUserInfo()?.bVideoOn,
   );
   const [isAudioMuted, setIsAudioMuted] = useState(
-    client.current.getCurrentUserInfo()?.muted ?? true
+    client.current.getCurrentUserInfo()?.muted ?? true,
   );
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +27,7 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     await client.current.init("en-US", "Global", { patchJsMedia: true });
     client.current.on(
       "peer-video-state-change",
-      (payload) => void renderVideo(payload)
+      (payload) => void renderVideo(payload),
     );
     await client.current.join(session, jwt, "ekaansh").catch((e) => {
       console.log(e);
@@ -64,7 +64,7 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     } else {
       const userVideo = await mediaStream.attachVideo(
         event.userId,
-        VideoQuality.Video_360P
+        VideoQuality.Video_360P,
       );
       videoContainerRef.current!.appendChild(userVideo as VideoPlayer);
     }
@@ -74,7 +74,7 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     client.current.off(
       "peer-video-state-change",
       (payload: { action: "Start" | "Stop"; userId: number }) =>
-        void renderVideo(payload)
+        void renderVideo(payload),
     );
     await client.current.leave().catch((e) => console.log("leave error", e));
     // hard refresh to reset the state
@@ -87,23 +87,9 @@ const Videocall = (props: { slug: string; JWT: string }) => {
       <h1 className="text-center text-3xl font-bold mb-4 mt-0">
         Session: {session}
       </h1>
-      <div
-        className="flex w-full flex-1"
-        style={inCall ? {} : { display: "none" }}
-      >
+      <div className="flex w-full flex-1" style={inCall ? {} : { display: "none" }}>
         {/* @ts-expect-error html component */}
-        <video-player-container
-          ref={videoContainerRef}
-          style={{
-            height: "75vh",
-            marginTop: "1.5rem",
-            marginLeft: "3rem",
-            marginRight: "3rem",
-            alignContent: "center",
-            borderRadius: "10px",
-            overflow: "hidden",
-          }}
-        />
+        <video-player-container ref={videoContainerRef} style={videoPlayerStyle} />
       </div>
       {!inCall ? (
         <div className="mx-auto flex w-64 flex-col self-center">
@@ -137,3 +123,13 @@ const Videocall = (props: { slug: string; JWT: string }) => {
 };
 
 export default Videocall;
+
+const videoPlayerStyle = {
+  height: "75vh",
+  marginTop: "1.5rem",
+  marginLeft: "3rem",
+  marginRight: "3rem",
+  alignContent: "center",
+  borderRadius: "10px",
+  overflow: "hidden",
+} as CSSProperties;

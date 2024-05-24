@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 
 const Videocall = dynamic<{ slug: string; JWT: string }>(
   () => import("../../components/Videocall"),
-  { ssr: false }
+  { ssr: false },
 );
 
 export default function Page() {

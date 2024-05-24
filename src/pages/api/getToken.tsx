@@ -3,13 +3,10 @@ import { NextApiRequest, NextApiResponse } from "next";
 
 export default function handler(
   req: NextApiRequest,
-  res: NextApiResponse<{ sdkJWT: string }>
+  res: NextApiResponse<{ sdkJWT: string }>,
 ) {
   const { sessionName, role } = req.query;
-  const sdkJWT = generateSignature(
-    sessionName as string,
-    parseInt(role as string)
-  );
+  const sdkJWT = generateSignature(sessionName as string, parseInt(role as string));
   res.status(200).json({ sdkJWT });
 }
 
