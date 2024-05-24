@@ -1,4 +1,4 @@
-import 'server-only';
+import "server-only";
 import { KJUR } from "jsrsasign";
 
 export async function getData(slug: string) {

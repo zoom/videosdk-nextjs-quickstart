@@ -1,8 +1,4 @@
-import {
-  type Dispatch,
-  type MutableRefObject,
-  type SetStateAction,
-} from "react";
+import { type Dispatch, type MutableRefObject, type SetStateAction } from "react";
 import type { VideoClient } from "@zoom/videosdk";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
@@ -14,9 +10,7 @@ const MicButton = (props: {
   const { client, isAudioMuted, setIsAudioMuted } = props;
   const onMicrophoneClick = async () => {
     const mediaStream = client.current.getMediaStream();
-    isAudioMuted
-      ? await mediaStream?.unmuteAudio()
-      : await mediaStream?.muteAudio();
+    isAudioMuted ? await mediaStream?.unmuteAudio() : await mediaStream?.muteAudio();
     setIsAudioMuted(client.current.getCurrentUserInfo().muted ?? true);
   };
   return (
