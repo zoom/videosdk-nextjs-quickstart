@@ -1,4 +1,5 @@
 "use client";
+
 import { CSSProperties, useRef, useState } from "react";
 import ZoomVideo, {
   type VideoClient,
@@ -16,10 +17,10 @@ const Videocall = (props: { slug: string; JWT: string }) => {
   const [inCall, setInCall] = useState(false);
   const client = useRef<typeof VideoClient>(ZoomVideo.createClient());
   const [isVideoMuted, setIsVideoMuted] = useState(
-    !client.current.getCurrentUserInfo()?.bVideoOn,
+    !client.current.getCurrentUserInfo()?.bVideoOn
   );
   const [isAudioMuted, setIsAudioMuted] = useState(
-    client.current.getCurrentUserInfo()?.muted ?? true,
+    client.current.getCurrentUserInfo()?.muted ?? true
   );
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
@@ -27,9 +28,9 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     await client.current.init("en-US", "Global", { patchJsMedia: true });
     client.current.on(
       "peer-video-state-change",
-      (payload) => void renderVideo(payload),
+      (payload) => void renderVideo(payload)
     );
-    await client.current.join(session, jwt, "ekaansh").catch((e) => {
+    await client.current.join(session, jwt, userName).catch((e) => {
       console.log(e);
     });
   };
@@ -64,7 +65,7 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     } else {
       const userVideo = await mediaStream.attachVideo(
         event.userId,
-        VideoQuality.Video_360P,
+        VideoQuality.Video_360P
       );
       videoContainerRef.current!.appendChild(userVideo as VideoPlayer);
     }
@@ -74,7 +75,7 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     client.current.off(
       "peer-video-state-change",
       (payload: { action: "Start" | "Stop"; userId: number }) =>
-        void renderVideo(payload),
+        void renderVideo(payload)
     );
     await client.current.leave().catch((e) => console.log("leave error", e));
     // hard refresh to reset the state
@@ -133,3 +134,5 @@ const videoPlayerStyle = {
   borderRadius: "10px",
   overflow: "hidden",
 } as CSSProperties;
+
+const userName = `User-${new Date().getTime().toString().slice(8)}`;

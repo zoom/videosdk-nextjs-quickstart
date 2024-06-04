@@ -90,19 +90,6 @@ video-player-container:has(> :nth-child(5)) {
 video-player-container:has(> :nth-child(17)) {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
-video-player-container {
-  width: 100%;
-  height: 100%;
-  display: grid !important;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-}
-video-player-container:has(> :nth-child(2)) {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-video-player-container:has(> :nth-child(5)) {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 video-player {
   width: 100%;
   height: auto;

@@ -16,12 +16,7 @@ function generateSignature(sessionName: string, role: number) {
   const sdkKey = process.env.ZOOM_SDK_KEY;
   const sdkSecret = process.env.ZOOM_SDK_SECRET;
   const oPayload = {
-    app_key: sdkKey,
-    tpc: sessionName,
-    role_type: role,
-    version: 1,
-    iat: iat,
-    exp: exp,
+    app_key: sdkKey, tpc: sessionName, role_type: role, version: 1, iat: iat, exp: exp,
   };
 
   const sHeader = JSON.stringify(oHeader);
