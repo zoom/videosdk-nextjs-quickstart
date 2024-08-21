@@ -7,7 +7,6 @@ import ZoomVideo, {
   type VideoPlayer,
 } from "@zoom/videosdk";
 import { CameraButton, MicButton } from "./MuteButtons";
-import { WorkAroundForSafari } from "@/lib/utils";
 import { PhoneOff } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -35,13 +34,10 @@ const Videocall = (props: { slug: string; JWT: string }) => {
     });
     setInSession(true);
     const mediaStream = client.current.getMediaStream();
-    // @ts-expect-error https://stackoverflow.com/questions/7944460/detect-safari-browser/42189492#42189492
-    window.safari
-      ? await WorkAroundForSafari(client.current)
-      : await mediaStream.startAudio();
-    setIsAudioMuted(client.current.getCurrentUserInfo().muted ?? true);
+    await mediaStream.startAudio();
+    setIsAudioMuted(mediaStream.isAudioMuted());
     await mediaStream.startVideo();
-    setIsVideoMuted(!client.current.getCurrentUserInfo().bVideoOn);
+    setIsVideoMuted(!mediaStream.isCapturingVideo());
     await renderVideo({
       action: "Start",
       userId: client.current.getCurrentUserInfo().userId,
