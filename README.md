@@ -21,13 +21,15 @@ $ bun install # or npm install
 ```
 3.Install required Radix UI components
 
-bashCopy# Using shadcn/ui CLI (Recommended)
+```bash
+# Using shadcn/ui CLI (Recommended)
 npx shadcn-ui@latest add dropdown-menu separator
 
 # Or manually install Radix UI packages
-bun add @radix-ui/react-dropdown-menu @radix-ui/react-separator @radix-ui/react-slot
-# or using npm
 npm install @radix-ui/react-dropdown-menu @radix-ui/react-separator @radix-ui/react-slot
+# or using bun
+bun add @radix-ui/react-dropdown-menu @radix-ui/react-separator @radix-ui/react-slot
+```
 
 4. Copy `.env.example` to `.env` and fill in your Zoom Video SDK credentials as:
 
