@@ -27,7 +27,8 @@ npx shadcn-ui@latest add dropdown-menu separator
 
 # Or manually install Radix UI packages
 npm install @radix-ui/react-dropdown-menu @radix-ui/react-separator @radix-ui/react-slot
-# or using bun
+
+# Or using bun
 bun add @radix-ui/react-dropdown-menu @radix-ui/react-separator @radix-ui/react-slot
 ```
 
