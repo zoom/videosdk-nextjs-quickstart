@@ -1,11 +1,14 @@
 import "server-only";
 import { KJUR } from "jsrsasign";
 
-export async function getData(slug: string) {
-  const JWT = await generateSignature(slug, 1);
+export async function getData(slug: string, role: number) {
+  const JWT = await generateSignature(slug, role);
   return JWT;
 }
 
+// 取得Video SDK JWT才能創建與加入Session，role_type若為1則代表此人為Session主持人或共同主人，為0參與者
+// Authorize：https://developers.zoom.us/docs/video-sdk/auth/#generate-a-video-sdk-jwt
+// 權限說明：https://developers.zoom.us/docs/video-sdk/web/sessions/#user-roles-and-actions
 function generateSignature(sessionName: string, role: number) {
   if (!process.env.ZOOM_SDK_KEY || !process.env.ZOOM_SDK_SECRET) {
     throw new Error("Missing ZOOM_SDK_KEY or ZOOM_SDK_SECRET");
