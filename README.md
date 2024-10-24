@@ -33,6 +33,7 @@ bun add @radix-ui/react-dropdown-menu @radix-ui/react-separator @radix-ui/react-
 ```
 
 4. Obtain your `SDK Key` and `SDK Secret`
+
 Log in to the [Zoom App Marketplace](https://marketplace.zoom.us/), click Develop in the top right corner, then select Build Video SDK. Scroll down and you'll find your SDK Key and SDK Secret.
 
 5. Copy `.env.example` to `.env` and fill in your Zoom Video SDK credentials as:
