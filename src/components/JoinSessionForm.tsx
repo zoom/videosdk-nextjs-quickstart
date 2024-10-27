@@ -3,12 +3,11 @@ import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
 interface JoinSessionFormProps {
-  onJoin: (userName: string, password: string) => void;
+  onJoin: (userName: string) => void;
 }
 
 const JoinSessionForm: React.FC<JoinSessionFormProps> = ({ onJoin }) => {
   const [userName, setUserName] = useState("");
-  const [password, setPassword] = useState("");
   const [userNameError, setUserNameError] = useState("");
 
   const handleJoin = () => {
@@ -17,7 +16,7 @@ const JoinSessionForm: React.FC<JoinSessionFormProps> = ({ onJoin }) => {
       return;
     }
     setUserNameError("");
-    onJoin(userName, password);
+    onJoin(userName);
   };
 
   return (
@@ -33,14 +32,6 @@ const JoinSessionForm: React.FC<JoinSessionFormProps> = ({ onJoin }) => {
         className={`mb-2 ${userNameError ? 'border-red-500' : ''}`}
       />
       {userNameError && <p className="text-red-500 text-sm mb-2">{userNameError}</p>}
-      
-      <Input
-        type="password"
-        placeholder="請輸入密碼（可選）"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="mb-4"
-      />
       
       <Button 
         className="flex flex-1" 

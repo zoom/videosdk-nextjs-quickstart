@@ -31,9 +31,10 @@ import { renderParticipant, renderAllParticipants, removeParticipantVideo } from
 import { useNotifications } from '../hooks/useNotifications';
 import { toggleScreenSharing } from '../utils/ScreenShareUtils';
 import { joinSession, leaveSession, endSession } from '../utils/SessionUtils';
+import { Input } from "./ui/input";
 
-const Videocall = (props: { slug: string; JWT: string; role: number }) => {
-  const { slug: session, JWT: jwt, role } = props;
+const Videocall = (props: { slug: string; JWT: string; role: number; password: string }) => {
+  const { slug: session, JWT: jwt, role, password } = props;
 
   const [inSession, setInSession] = useState(false);
   const client = useRef<typeof VideoClient>(ZoomVideo.createClient());
@@ -180,7 +181,7 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
     }
   };
 
-  const handleJoinSession = async (userName: string, password: string) => {
+  const handleJoinSession = async (userName: string) => {
     await joinSession(client.current, session, jwt, userName, setIsAudioMuted, setIsNoiseSuppressionEnabled, addNotification, checkExistingScreenShare, setupChatPrivilege, setInSession, role);
   };
 
@@ -438,7 +439,9 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
       )}
       
       {!inSession ? (
-        <JoinSessionForm onJoin={handleJoinSession} />
+        <div className="mx-auto flex w-64 flex-col self-center">
+          <JoinSessionForm onJoin={handleJoinSession} />
+        </div>
       ) : (
         <div className="flex w-full flex-col items-center">
           <VideoCallControls
