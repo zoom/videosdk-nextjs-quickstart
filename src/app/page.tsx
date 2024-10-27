@@ -50,7 +50,7 @@ export default function Home() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <p className="text-sm text-gray-500 mb-4 text-center max-w-xs">
-        注意：不同的會話名稱或密碼將會導致進入不同的會議。
+        注意：創建會話時若有使用密碼，加入會話時如果輸入不同密碼，會導致無法加入任何會議。
       </p>
       <Button
         className="w-full max-w-xs"

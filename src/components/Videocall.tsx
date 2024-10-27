@@ -31,9 +31,8 @@ import { renderParticipant, renderAllParticipants, removeParticipantVideo } from
 import { useNotifications } from '../hooks/useNotifications';
 import { toggleScreenSharing } from '../utils/ScreenShareUtils';
 import { joinSession, leaveSession, endSession } from '../utils/SessionUtils';
-import { Input } from "./ui/input";
 
-const Videocall = (props: { slug: string; JWT: string; role: number; password: string }) => {
+const Videocall = (props: { slug: string; JWT: string; role: number; password?: string }) => {
   const { slug: session, JWT: jwt, role, password } = props;
 
   const [inSession, setInSession] = useState(false);
@@ -182,7 +181,20 @@ const Videocall = (props: { slug: string; JWT: string; role: number; password: s
   };
 
   const handleJoinSession = async (userName: string) => {
-    await joinSession(client.current, session, jwt, userName, setIsAudioMuted, setIsNoiseSuppressionEnabled, addNotification, checkExistingScreenShare, setupChatPrivilege, setInSession, role);
+    await joinSession(
+      client.current,
+      session,
+      jwt,
+      userName,
+      password,
+      setIsAudioMuted,
+      setIsNoiseSuppressionEnabled,
+      addNotification,
+      checkExistingScreenShare,
+      setupChatPrivilege,
+      setInSession,
+      role
+    );
   };
 
   const handleLeaveSession = async () => {

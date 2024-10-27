@@ -32,8 +32,8 @@ export const initializeSession = async (client: typeof VideoClient) => {
   await client.init("en-US", "Global", { patchJsMedia: true });
 };
 
-export const joinZoomSession = async (client: typeof VideoClient, session: string, jwt: string, userName: string) => {
-  await client.join(session, jwt, userName).catch((e) => {
+export const joinZoomSession = async (client: typeof VideoClient, session: string, jwt: string, userName: string, password: string) => {
+  await client.join(session, jwt, userName, password).catch((e) => {
     console.log(e);
   });
   console.log("成功加入會議");
