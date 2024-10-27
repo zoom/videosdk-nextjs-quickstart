@@ -31,6 +31,9 @@ export const toggleScreenSharing = async (
         videoContainerRef.current.appendChild(wrapper);
       }
 
+      // 確保 video 元素已經被添加到 DOM 中
+      await new Promise(resolve => setTimeout(resolve, 0));
+
       await mediaStream.startShareScreen(shareVideo);
       setIsScreenSharing(true);
       setActiveSharer({
@@ -60,6 +63,9 @@ export const toggleScreenSharing = async (
           break;
         case 'NOT_SUPPORTED':
           addNotification("您的瀏覽器不支援螢幕分享功能");
+          break;
+        case 'INVALID_PARAMETERS':
+          addNotification("螢幕分享失敗：無效的參數");
           break;
         default:
           addNotification("螢幕分享失敗：" + error.message);

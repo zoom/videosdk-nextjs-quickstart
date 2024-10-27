@@ -229,25 +229,27 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
           videoContainerRef.current.appendChild(wrapper);
           
           try {
+            // 確保 canvas 已經被添加到 DOM 中
+            await new Promise(resolve => setTimeout(resolve, 0));
+            
             await mediaStream.startShareView(shareViewCanvas, activeShareUserId);
             console.log("成功開始觀看分享畫面");
-            await renderAllParticipants(client.current, videoContainerRef);
             setActiveSharer({
               userId: activeShareUserId,
               displayName: sharingUser?.displayName || '未知用戶'
             });
             addNotification(`${sharingUser?.displayName || '未知用戶'} 正在分享螢幕`);
-          } catch (startShareError) {
-            console.error("開始分享畫面失敗:", startShareError);
+          } catch (e) {
+            console.error("開始分享畫面失敗:");
+              addNotification("連接到分享畫面失敗，請稍後重試");
+            
             videoContainerRef.current.innerHTML = '';
-            await renderAllParticipants(client.current, videoContainerRef);
-            addNotification("連接到分享畫面失敗，請稍後重試");
           }
         }
       } else {
         console.log("目前沒有進行中的螢幕分享");
-        await renderAllParticipants(client.current, videoContainerRef);
       }
+      await renderAllParticipants(client.current, videoContainerRef);
     } catch (shareCheckError) {
       console.error("檢查螢幕分享狀態時出錯:", shareCheckError);
       addNotification("檢查螢幕分享狀態失敗");
@@ -380,7 +382,7 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
   return (
     <div className="flex h-full w-full flex-1 flex-col relative">
       <ToastContainer>
-        {notifications.map((notification, index) => (
+        {notifications.map((notification) => (
           <Toast 
             key={notification.id} 
             message={notification.message} 
