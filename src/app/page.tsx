@@ -6,15 +6,14 @@ import { useState } from "react";
 
 export default function Home() {
   const [sessionName, setSessionName] = useState("");
-  const [mode, setMode] = useState("create"); // 'create' 或 'join'
+  const [password, setPassword] = useState("");
+  const [mode, setMode] = useState("create");
   const router = useRouter();
 
   const handleSession = () => {
-    if (mode === "create") {
-      router.push(`/call/${sessionName}?role=1`); // 創建會話時，role 固定為 1（主持人）
-    } else {
-      router.push(`/call/${sessionName}?role=0`); // 加入會話時，role 固定為 0（參與者）
-    }
+    const role = mode === "create" ? "1" : "0";
+    const encodedPassword = encodeURIComponent(password);
+    router.push(`/call/${sessionName}?role=${role}&password=${encodedPassword}`);
   };
 
   return (
@@ -43,6 +42,16 @@ export default function Home() {
         value={sessionName}
         onChange={(e) => setSessionName(e.target.value)}
       />
+      <Input
+        type="password"
+        className="w-full max-w-xs mb-4"
+        placeholder="輸入會話密碼（可選）"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <p className="text-sm text-gray-500 mb-4 text-center max-w-xs">
+        注意：創建會話時若有使用密碼，加入會話時如果輸入不同密碼，會導致無法加入任何會議。
+      </p>
       <Button
         className="w-full max-w-xs"
         disabled={!sessionName}
