@@ -38,3 +38,14 @@ $ npm run dev # or bun dev
 ```
 
 You can open [http://localhost:3000](http://localhost:3000) with your browser to view the project.
+
+## API References
+
+For detailed information on the Zoom Video SDK API, refer to the following documentation:
+
+- [Zoom Video SDK Web Documentation](https://marketplacefront.zoom.us/sdk/custom/web/modules.html)
+- [Video Client Methods](https://marketplacefront.zoom.us/sdk/custom/web/modules/VideoClient.html)
+- [Media Stream Methods](https://marketplacefront.zoom.us/sdk/custom/web/modules/Stream.html)
+- [Chat Client Methods](https://marketplacefront.zoom.us/sdk/custom/web/modules/ChatClient.html)
+- [Chat Privileges](https://marketplacefront.zoom.us/sdk/custom/web/enums/ChatPrivilege.html)
+- [Origin Quickstart Github](https://github.com/zoom/videosdk-nextjs-quickstart/tree/4b149c7d1fc9b6170298cdc528375736be9eda87)
