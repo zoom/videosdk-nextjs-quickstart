@@ -17,14 +17,20 @@ import DeviceManager from './DeviceSelector';
 
 import {
   setupEventListeners,
-  cleanupEventListeners,
-  initializeSession,
-  joinZoomSession,
-  setupAudioAndVideo,
+  cleanupEventListeners
 } from '../utils/ConferenceUtils';
+
+import {
+  switchAudioDevice,
+  switchVideoDevice,
+  switchSpeakerDevice
+} from '../utils/DeviceUtils';
 
 import { useDevices, useParticipants } from '../hooks/userVideocall';
 import { renderParticipant, renderAllParticipants, removeParticipantVideo } from '../utils/ParticipantRendering';
+import { useNotifications } from '../hooks/useNotifications';
+import { toggleScreenSharing } from '../utils/ScreenShareUtils';
+import { joinSession, leaveSession, endSession } from '../utils/SessionUtils';
 
 const Videocall = (props: { slug: string; JWT: string; role: number }) => {
   const { slug: session, JWT: jwt, role } = props;
@@ -52,7 +58,6 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
 
   const { participants, currentUser, updateParticipantsList } = useParticipants(client, inSession);
 
-  const [notifications, setNotifications] = useState<Array<{ id: number, message: string }>>([]);
   const [isLeavingVoluntarily, setIsLeavingVoluntarily] = useState(false);
     
   const [isParticipantsListVisible, setIsParticipantsListVisible] = useState(false);
@@ -64,14 +69,7 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
   const [activeSharer, setActiveSharer] = useState<{userId: number; displayName: string} | null>(null);
   const [isChatVisible, setIsChatVisible] = useState(false);
 
-  const addNotification = (message: string) => {
-    const newNotification = { id: Date.now(), message };
-    setNotifications(prev => [...prev, newNotification]);
-  };
-
-  const removeNotification = (id: number) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
-  };
+  const { notifications, addNotification, removeNotification } = useNotifications();
 
   // 判斷是否行動裝置
   useEffect(() => {
@@ -182,13 +180,20 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
     }
   };
 
-  const joinSession = async (userName: string, password: string) => {
-    await initializeSession(client.current);
-    await joinZoomSession(client.current, session, jwt, userName);
-    await setupAudioAndVideo(client.current, setIsAudioMuted, setIsNoiseSuppressionEnabled, addNotification);
-    await checkExistingScreenShare();
-    await setupChatPrivilege();
-    setInSession(true);
+  const handleJoinSession = async (userName: string, password: string) => {
+    await joinSession(client.current, session, jwt, userName, setIsAudioMuted, setIsNoiseSuppressionEnabled, addNotification, checkExistingScreenShare, setupChatPrivilege, setInSession, role);
+  };
+
+  const handleLeaveSession = async () => {
+    await leaveSession(client.current, setIsLeavingVoluntarily);
+  };
+
+  const handleEndSession = async () => {
+    await endSession(client.current, addNotification);
+  };
+
+  const handleToggleScreenSharing = async () => {
+    await toggleScreenSharing(client.current, isScreenSharing, setIsScreenSharing, setActiveSharer, addNotification, videoContainerRef, renderAllParticipants);
   };
 
   // 檢查現有的螢幕分享
@@ -233,7 +238,7 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
             });
             addNotification(`${sharingUser?.displayName || '未知用戶'} 正在分享螢幕`);
           } catch (startShareError) {
-            console.error("開始觀看分享畫面失敗:", startShareError);
+            console.error("開始分享畫面失敗:", startShareError);
             videoContainerRef.current.innerHTML = '';
             await renderAllParticipants(client.current, videoContainerRef);
             addNotification("連接到分享畫面失敗，請稍後重試");
@@ -262,72 +267,23 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
     }
   };
 
-  // 離開會話
-  const leaveSession = async () => {
-    setIsLeavingVoluntarily(true);
-    await client.current.leave();
-    window.location.href = "/";
-  };
-
-  // 結束會話 (主持人功能)
-  const endSession = async () => {
-    try {
-      await client.current.leave(true);
-      addNotification("會話已被主持人結束");
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 2000);
-    } catch (error) {
-      console.error("結束會話時失敗:", error);
-      addNotification("結束會話時失敗，請重試");
-    }
-  };
-
   // 切換音訊設備
-  const switchAudioDevice = async (deviceId: string) => {
-    const mediaStream = client.current.getMediaStream();
-    try {
-      await mediaStream.switchMicrophone(deviceId);
-      setCurrentAudioInputDevice(deviceId);
-      addNotification("已切換音訊輸入設備");
-    } catch (error) {
-      console.error("切換音訊設備失敗:", error);
-      addNotification("切換音訊設備失敗，請重試");
-    }
+  const handleSwitchAudioDevice = async (deviceId: string) => {
+    await switchAudioDevice(client.current, deviceId, setCurrentAudioInputDevice, addNotification);
   };
 
   // 切換視訊設備
-  const switchVideoDevice = async (deviceId: string) => {
-    const mediaStream = client.current.getMediaStream();
-    try {
-      if (isMobileBrowser) {
-        await mediaStream.switchCamera(deviceId);
-      } else {
-        await mediaStream.switchCamera(deviceId);
-      }
-      setCurrentVideoInputDevice(deviceId);
-      addNotification("已切換視訊輸入設備");
-    } catch (error) {
-      console.error("切換視訊設備失敗:", error);
-      addNotification("切換視訊設備失敗，請重試");
-    }
+  const handleSwitchVideoDevice = async (deviceId: string) => {
+    await switchVideoDevice(client.current, deviceId, isMobileBrowser, setCurrentVideoInputDevice, addNotification);
   };
 
   // 切換喇叭設備
-  const switchSpeakerDevice = async (deviceId: string) => {
-    const mediaStream = client.current.getMediaStream();
-    try {
-      await mediaStream.switchSpeaker(deviceId);
-      setCurrentAudioOutputDevice(deviceId);
-      addNotification("已切換喇叭輸出裝置");
-    } catch (error) {
-      console.error("切換喇叭設備失敗:", error);
-      addNotification("切換喇叭設備失敗，請重試");
-    }
+  const handleSwitchSpeakerDevice = async (deviceId: string) => {
+    await switchSpeakerDevice(client.current, deviceId, setCurrentAudioOutputDevice, addNotification);
   };
 
   // 切換噪音抑制
-  const toggleNoiseSuppression = async () => {
+  const handleToggleNoiseSuppression = async () => {
     const mediaStream = client.current.getMediaStream();
     try {
       const newState = !isNoiseSuppressionEnabled;
@@ -337,76 +293,6 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
     } catch (error) {
       console.error("切換背景噪音抑制失敗:", error);
       addNotification("切換背景噪音抑制失敗，請重試");
-    }
-  };
-
-  // 切換螢幕分享
-  const toggleScreenSharing = async () => {
-    const mediaStream = client.current.getMediaStream();
-    const currentUser = client.current.getCurrentUserInfo();
-  
-    try {
-      if (!isScreenSharing) {
-        const shareVideo = document.createElement('video') as HTMLVideoElement;
-        shareVideo.style.width = '100%';
-        shareVideo.style.height = '100%';
-        
-        const sharerInfo = document.createElement('div');
-        sharerInfo.className = 'sharer-info';
-        sharerInfo.textContent = `${currentUser.displayName} (您) 正在分享螢幕`;
-        
-        if (videoContainerRef.current) {
-          videoContainerRef.current.innerHTML = '';
-          const wrapper = document.createElement('div');
-          wrapper.className = 'screen-share-wrapper';
-          wrapper.appendChild(shareVideo);
-          wrapper.appendChild(sharerInfo);
-          videoContainerRef.current.appendChild(wrapper);
-        }
-  
-        await mediaStream.startShareScreen(shareVideo);
-        setIsScreenSharing(true);
-        setActiveSharer({
-          userId: currentUser.userId,
-          displayName: currentUser.displayName
-        });
-        addNotification("已開始螢幕分享");
-        await renderAllParticipants(client.current, videoContainerRef);
-      } else {
-        await mediaStream.stopShareScreen();
-        setIsScreenSharing(false);
-        setActiveSharer(null);
-        addNotification("已停止螢幕分享");
-        
-        if (videoContainerRef.current) {
-          videoContainerRef.current.innerHTML = '';
-        }
-        await renderAllParticipants(client.current, videoContainerRef);
-      }
-    } catch (error) {
-      console.error("螢幕分享錯誤:", error);
-      
-      if (error instanceof Error) {
-        switch(error.message) {
-          case 'Permission denied':
-            addNotification("使用者拒絕了螢幕分享權限");
-            break;
-          case 'NOT_SUPPORTED':
-            addNotification("您的瀏覽器不支援螢幕分享功能");
-            break;
-          default:
-            addNotification("螢幕分享失敗：" + error.message);
-        }
-      } else {
-        addNotification("螢幕分享失敗，請重試");
-      }
-      
-      setIsScreenSharing(false);
-      
-      if (videoContainerRef.current) {
-        videoContainerRef.current.innerHTML = '';
-      }
-      await renderAllParticipants(client.current, videoContainerRef);
     }
   };
 
@@ -494,11 +380,11 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
   return (
     <div className="flex h-full w-full flex-1 flex-col relative">
       <ToastContainer>
-        {notifications.map(notification => (
+        {notifications.map((notification, index) => (
           <Toast 
             key={notification.id} 
             message={notification.message} 
-            onClose={() => removeNotification(notification.id)} 
+            onClose={() => removeNotification(notification.id)}
           />
         ))}
       </ToastContainer>
@@ -550,7 +436,7 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
       )}
       
       {!inSession ? (
-        <JoinSessionForm onJoin={joinSession} />
+        <JoinSessionForm onJoin={handleJoinSession} />
       ) : (
         <div className="flex w-full flex-col items-center">
           <VideoCallControls
@@ -563,10 +449,10 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
             setIsAudioMuted={setIsAudioMuted}
             setIsVideoMuted={setIsVideoMuted}
             setIsVirtualBackgroundEnabled={setIsVirtualBackgroundEnabled}
-            toggleNoiseSuppression={toggleNoiseSuppression}
-            toggleScreenSharing={toggleScreenSharing}
-            leaveSession={leaveSession}
-            endSession={role === 1 ? endSession : undefined}
+            toggleNoiseSuppression={handleToggleNoiseSuppression}
+            toggleScreenSharing={handleToggleScreenSharing}
+            leaveSession={handleLeaveSession}
+            endSession={role === 1 ? handleEndSession : undefined}
             role={role}
             renderVideo={(event) => renderParticipant(client.current, event.userId, videoContainerRef)}
           />
@@ -577,9 +463,9 @@ const Videocall = (props: { slug: string; JWT: string; role: number }) => {
             currentAudioInputDevice={currentAudioInputDevice}
             currentVideoInputDevice={currentVideoInputDevice}
             currentAudioOutputDevice={currentAudioOutputDevice}
-            switchAudioDevice={switchAudioDevice}
-            switchVideoDevice={switchVideoDevice}
-            switchSpeakerDevice={switchSpeakerDevice}
+            switchAudioDevice={handleSwitchAudioDevice}
+            switchVideoDevice={handleSwitchVideoDevice}
+            switchSpeakerDevice={handleSwitchSpeakerDevice}
           />
         </div>
       )}

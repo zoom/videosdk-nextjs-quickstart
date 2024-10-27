@@ -175,6 +175,8 @@ video-player {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   animation: slideInAndFade 3s ease-in-out forwards;
   opacity: 0;
+  pointer-events: none;
+  transition: transform 0.3s ease-out;
 }
 
 @keyframes slideInAndFade {
@@ -191,7 +193,7 @@ video-player {
     opacity: 1;
   }
   100% {
-    transform: translateX(0);
+    transform: translateX(100%);
     opacity: 0;
   }
 }
