@@ -86,6 +86,29 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         setChatClient(chat);
         setIsConnected(true);
 
+        // 獲取歷史訊息
+        const loadChatHistory = async () => {
+          try {
+            const history = await chat.getHistory();
+            const formattedHistory: ChatMessage[] = history.map((msg: any) => ({
+              id: `history-${msg.timestamp}-${msg.sender.userId}`,
+              senderId: msg.sender.userId,
+              senderName: msg.sender.name || '未知用戶',
+              message: msg.message,
+              timestamp: msg.timestamp,
+              isPrivate: !!msg.receiver && msg.receiver.userId !== 0,
+              receiverId: msg.receiver?.userId === 0 ? undefined : msg.receiver?.userId,
+              isSystem: false
+            }));
+            setMessages(formattedHistory);
+          } catch (error) {
+            console.error('獲取聊天記錄失敗:', error);
+            addSystemMessage('無法載入歷史訊息');
+          }
+        };
+
+        loadChatHistory();
+
         const users = client.current.getAllUser();
         setParticipants(users);
         setCurrentUser(client.current.getCurrentUserInfo());
