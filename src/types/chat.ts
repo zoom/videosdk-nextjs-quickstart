@@ -1,3 +1,5 @@
+import { translationConfig } from '@/config/translation';
+
 export interface FileInfo {
   name: string;
   url: string;
@@ -15,4 +17,9 @@ export interface ChatMessage {
   receiverId?: number;
   isSystem?: boolean;
   file?: FileInfo;
+}
+
+export interface TranslationOption {
+  value: keyof typeof translationConfig.languages;
+  label: string;
 } 

@@ -21,6 +21,7 @@ import {
 import { Separator } from '@radix-ui/react-dropdown-menu';
 import { useMessages } from '@/hooks/useMessages';
 import { useTranslation } from '@/hooks/useTranslation';
+import { translationConfig, TranslationLanguage, AllLanguages, LanguageConfig } from '@/config/translation';
 
 interface FileInfo {
   name: string;
@@ -462,35 +463,28 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
                   關閉翻譯
                   {autoTranslateLanguage === 'none' && " ✓"}
                 </Button>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button 
-                    variant={autoTranslateLanguage === 'vi' ? "default" : "outline"}
-                    onClick={() => {
-                      setAutoTranslateLanguage(autoTranslateLanguage === 'vi' ? 'none' : 'vi');
-                      addSystemMessage(
-                        autoTranslateLanguage === 'vi' 
-                          ? '已關閉即時翻譯' 
-                          : '已開啟即時翻譯（中文→越南文）'
-                      );
-                    }}
-                  >
-                    中文→越南文
-                    {autoTranslateLanguage === 'vi' && " ✓"}
-                  </Button>
-                  <Button 
-                    variant={autoTranslateLanguage === 'zh' ? "default" : "outline"}
-                    onClick={() => {
-                      setAutoTranslateLanguage(autoTranslateLanguage === 'zh' ? 'none' : 'zh');
-                      addSystemMessage(
-                        autoTranslateLanguage === 'zh' 
-                          ? '已關閉即時翻譯' 
-                          : '已開啟即時翻譯（越南文→中文）'
-                      );
-                    }}
-                  >
-                    越南文→中文
-                    {autoTranslateLanguage === 'zh' && " ✓"}
-                  </Button>
+                <div className="grid grid-cols-1 gap-2">
+                  {(Object.entries(translationConfig.languages) as [AllLanguages, LanguageConfig][])
+                    .filter(([code]) => code !== 'none')
+                    .map(([code, lang]) => (
+                      <Button 
+                        key={code}
+                        variant={autoTranslateLanguage === code ? "default" : "outline"}
+                        onClick={() => {
+                          setAutoTranslateLanguage(
+                            autoTranslateLanguage === code ? 'none' : code as TranslationLanguage
+                          );
+                          addSystemMessage(
+                            autoTranslateLanguage === code
+                              ? '已關閉即時翻譯'
+                              : `已開啟即時翻譯（${lang.displayName}）`
+                          );
+                        }}
+                      >
+                        {lang.displayName}
+                        {autoTranslateLanguage === code && " ✓"}
+                      </Button>
+                    ))}
                 </div>
               </div>
 
@@ -498,18 +492,17 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
               
               <h4 className="font-medium">聊天記錄翻譯</h4>
               <div className="grid grid-cols-2 gap-2">
-                <Button 
-                  variant="outline"
-                  onClick={() => handleTranslateClick('vi')}
-                >
-                  中文→越南文
-                </Button>
-                <Button 
-                  variant="outline"
-                  onClick={() => handleTranslateClick('zh')}
-                >
-                  越南文→中文
-                </Button>
+                {(Object.entries(translationConfig.languages) as [AllLanguages, LanguageConfig][])
+                  .filter(([code]) => code !== 'none')
+                  .map(([code, lang]) => (
+                    <Button 
+                      key={code}
+                      variant="outline"
+                      onClick={() => handleTranslateClick(code as TranslationLanguage)}
+                    >
+                      {lang.displayName}
+                    </Button>
+                  ))}
               </div>
             </div>
           </div>

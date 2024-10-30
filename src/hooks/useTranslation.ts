@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChatMessage } from '@/types/chat';
 import { translationConfig, getApiConfig } from '@/config/translation';
 
@@ -9,7 +9,17 @@ interface UseTranslationProps {
 }
 
 export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
-  const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>({});
+  const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>(() => {
+    // 從 localStorage 讀取已翻譯的訊息
+    const saved = localStorage.getItem('translatedMessages');
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  // 當翻譯訊息更新時，保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('translatedMessages', JSON.stringify(translatedMessages));
+  }, [translatedMessages]);
+
   const [autoTranslateLanguage, setAutoTranslateLanguage] = useState<TranslationLanguage>(translationConfig.defaultSourceLang as TranslationLanguage);
 
   const handleAutoTranslateLanguageChange = (language: TranslationLanguage) => {
@@ -83,7 +93,7 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
 
   const handleTranslate = async (
     messages: ChatMessage[], 
-    targetLang: keyof typeof translationConfig.languages
+    targetLang: TranslationLanguage
   ) => {
     try {
       const messagesToTranslate = messages
@@ -95,7 +105,7 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
         return;
       }
 
-      addSystemMessage('正在翻譯訊息...');
+      addSystemMessage(`正在${translationConfig.languages[targetLang].displayName}...`);
       const translations = await translateMessages(messagesToTranslate, targetLang);
       
       if (translations && Array.isArray(translations)) {
@@ -109,7 +119,7 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
           });
         
         setTranslatedMessages(newTranslations);
-        addSystemMessage('訊息翻譯完成');
+        addSystemMessage('翻譯完成');
         return true;
       } else {
         addSystemMessage('翻譯失敗，請稍後再試');
