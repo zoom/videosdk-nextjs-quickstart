@@ -1,25 +1,8 @@
 import { useState, useEffect } from 'react';
 
-interface FileInfo {
-  name: string;
-  url: string;
-  size: number;
-  type: string;
-}
+import { ChatMessage } from '@/types/chat';
 
-interface ChatMessage {
-  id: string;
-  senderId: number;
-  senderName: string;
-  message: string;
-  timestamp: number;
-  isPrivate: boolean;
-  receiverId?: number;
-  isSystem?: boolean;
-  file?: FileInfo;
-}
-
-export function useMessages() {
+export function useChats() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>(() => {
     const saved = localStorage.getItem('translatedMessages');
@@ -67,20 +50,12 @@ export function useMessages() {
     });
   };
 
-  const setTranslation = (messageId: string, translation: string) => {
-    setTranslatedMessages(prev => ({
-      ...prev,
-      [messageId]: translation
-    }));
-  };
-
   return {
     messages,
     setMessages: setMessagesWithHistory,
     translatedMessages,
     setTranslatedMessages,
     addSystemMessage,
-    addChatMessage,
-    setTranslation
+    addChatMessage
   };
 } 

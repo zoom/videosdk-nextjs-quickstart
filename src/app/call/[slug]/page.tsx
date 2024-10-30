@@ -3,7 +3,7 @@ import dynamic from "next/dynamic";
 import Script from "next/script";
 
 const Videocall = dynamic<{ slug: string; JWT: string; role: number, password?: string }>(
-  () => import("../../../components/Videocall"),
+  () => import("../../../components/VideoCall"),
   { ssr: false },
 );
 

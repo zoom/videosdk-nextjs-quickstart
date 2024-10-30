@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { VideoClient, ChatPrivilege } from "@zoom/videosdk";
+import { MessageCircle, X, Settings } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { MessageCircle, X, Settings } from "lucide-react";
-import { VideoClient, ChatPrivilege } from "@zoom/videosdk";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -16,31 +17,15 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Separator } from '@radix-ui/react-dropdown-menu';
-import { useMessages } from '@/hooks/useMessages';
+import { Separator } from '@/components/ui/separator';
+
+import { useChats } from '@/hooks/useChats';
 import { useTranslation } from '@/hooks/useTranslation';
+
+import { ChatMessage } from '@/types/chat';
+import { privilegeDescriptions } from '@/config/chat';
 import { translationConfig, TranslationLanguage, AllLanguages, LanguageConfig } from '@/config/translation';
-
-interface FileInfo {
-  name: string;
-  url: string;
-  size: number;
-  type: string;
-}
-
-interface ChatMessage {
-  id: string;
-  senderId: number;
-  senderName: string;
-  message: string;
-  timestamp: number;
-  isPrivate: boolean;
-  receiverId?: number;
-  isSystem?: boolean;
-  file?: FileInfo;
-}
 
 interface ChatProps {
   client: React.MutableRefObject<typeof VideoClient>;
@@ -48,20 +33,13 @@ interface ChatProps {
   onClose: () => void;
 }
 
-const privilegeDescriptions: Record<number, string> = {
-  // 聊天室權限：https://marketplacefront.zoom.us/sdk/custom/web/enums/ChatPrivilege.html
-  1: '允許公開訊息與私訊',
-  4: '禁止所有訊息',
-  5: '只允許公開訊息'
-};
-
 const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
   const {
     messages,
     setMessages,
     addSystemMessage,
     addChatMessage,
-  } = useMessages();
+  } = useChats();
 
   const {
     translatedMessages,
@@ -82,7 +60,6 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
   const [isConnected, setIsConnected] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const initializedRef = useRef(false);
-  const [isTranslateMenuOpen, setIsTranslateMenuOpen] = useState(false);
   const [isTranslateDialogOpen, setIsTranslateDialogOpen] = useState(false);
 
   const handlePrivilegeChange = async (privilege: ChatPrivilege) => {
@@ -147,11 +124,10 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         initializePrivilege();
 
         // 權限變更時的處理程序
-        const handlePrivilegeChangeEvent = (payload: any) => {
+        const handlePrivilegeChangeEvent = (payload: { chatPrivilege: ChatPrivilege }) => {
           const newPrivilege = payload.chatPrivilege;
           setCurrentPrivilege(newPrivilege);
           
-          // 只有在權限確實發生變化時才顯示通知
           const description = privilegeDescriptions[newPrivilege] || '未知權限';
           addSystemMessage(`權限更改: ${description}`);
           
@@ -255,7 +231,7 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         await chatClient.sendToAll(newMessage);
       } else {
         if (currentPrivilege === ChatPrivilege.EveryonePublicly) {
-          addSystemMessage('目前只允許發送公開訊息');
+          addSystemMessage('目前只許發送公開訊息');
           return;
         }
         await chatClient.send(newMessage, selectedReceiver);

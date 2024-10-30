@@ -1,7 +1,9 @@
 import React from 'react';
-import { Button } from "./ui/button";
-import { MicButton, CameraButton } from "./MuteButtons";
-import { AudioWaveform, Monitor, MonitorOff, StopCircle, Video } from "lucide-react";
+import { AudioWaveform, Monitor, MonitorOff, } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+
+import { MicButton, CameraButton } from "@/components/controls/MuteButtons";
 
 interface VideoCallControlsProps {
   isAudioMuted: boolean;
