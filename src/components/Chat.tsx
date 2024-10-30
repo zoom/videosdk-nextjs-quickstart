@@ -18,6 +18,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Separator } from '@radix-ui/react-dropdown-menu';
+import { useMessages } from '@/hooks/useMessages';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface FileInfo {
   name: string;
@@ -52,7 +55,23 @@ const privilegeDescriptions: Record<number, string> = {
 };
 
 const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const {
+    messages,
+    setMessages,
+    addSystemMessage,
+    addChatMessage,
+  } = useMessages();
+
+  const {
+    translatedMessages,
+    setTranslatedMessages,
+    autoTranslateLanguage,
+    setAutoTranslateLanguage,
+    translateMessages,
+    handleTranslate,
+    setTranslation
+  } = useTranslation({ addSystemMessage });
+
   const [newMessage, setNewMessage] = useState('');
   const [selectedReceiver, setSelectedReceiver] = useState<'all' | number>('all');
   const [participants, setParticipants] = useState<any[]>([]);
@@ -63,22 +82,8 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const initializedRef = useRef(false);
   const [isTranslateMenuOpen, setIsTranslateMenuOpen] = useState(false);
-  const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>({});
   const [isTranslateDialogOpen, setIsTranslateDialogOpen] = useState(false);
 
-  const addSystemMessage = (message: string) => {
-    const systemMessage: ChatMessage = {
-      id: `system-${Date.now()}-${Math.random()}`,
-      senderId: 0,
-      senderName: '系統訊息',
-      message,
-      timestamp: Date.now(),
-      isPrivate: false,
-      isSystem: true
-    };
-    setMessages(prev => [...prev, systemMessage]);
-  };
-  
   const handlePrivilegeChange = async (privilege: ChatPrivilege) => {
     if (!chatClient) return;
     try {
@@ -157,7 +162,7 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
           }
         };
 
-        const handleChatMessage = (payload: any) => {
+        const handleChatMessage = async (payload: any) => {
           const { message, sender, receiver, timestamp } = payload;
           
           if (!sender || !sender.userId) return;
@@ -174,12 +179,18 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
             isPrivate: !!receiver && receiver.userId !== 0,
             receiverId: receiver?.userId === 0 ? undefined : receiver?.userId
           };
+          if (sender.userId !== currentUser?.userId && autoTranslateLanguage !== 'none') {
+            try {
+              const translations = await translateMessages([message], autoTranslateLanguage);
+              if (translations && Array.isArray(translations) && translations[0]) {
+                setTranslation(newChatMessage.id, translations[0]);
+              }
+            } catch (error) {
+              console.error('自動翻譯失敗:', error);
+            }
+          }
           
-          setMessages(prev => {
-            const isDuplicate = prev.some(msg => msg.id === newChatMessage.id);
-            if (isDuplicate) return prev;
-            return [...prev, newChatMessage];
-          });
+          addChatMessage(newChatMessage);
         };
 
         const handleUserAdded = () => {
@@ -210,7 +221,7 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         setIsConnected(false);
       }
     }
-  }, [isVisible, client]);
+  }, [isVisible, client, autoTranslateLanguage]);
 
   useEffect(() => {
     if (currentPrivilege === ChatPrivilege.EveryonePublicly) {
@@ -257,88 +268,9 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
     }
   };
 
-  const translateMessages = async (messages: string[], targetLang: 'vi' | 'zh') => {
-    try {
-      const response = await fetch('https://smartchinese.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-02-15-preview', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'api-key': '3seF87oOjYnddZVbCiShjnjzaVXa82zky4j3oJVhtfxa8VHuUnWqJQQJ99AJAC4f1cMXJ3w3AAABACOG7HRG'
-        },
-        body: JSON.stringify({
-          messages: [
-            {
-              role: "system",
-              content: targetLang === 'vi' 
-                ? "You are a translator. Translate the following Traditional Chinese messages into Vietnamese. Only return the translated array in valid JSON format, nothing else."
-                : "You are a translator. Translate the following Vietnamese messages into Traditional Chinese. Only return the translated array in valid JSON format, nothing else."
-            },
-            {
-              role: "user",
-              content: JSON.stringify(messages)
-            }
-          ],
-          temperature: 0.3,
-          top_p: 0.3,
-          max_tokens: 2000,
-          stream: false
-        })
-      });
-
-      const data = await response.json();
-      
-      // 嘗試清理回應內容，移除可能的 markdown 標記
-      let cleanContent = data.choices[0].message.content;
-      cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      
-      try {
-        const translatedArray = JSON.parse(cleanContent);
-        return translatedArray;
-      } catch (parseError) {
-        console.error('JSON 解析失敗:', parseError);
-        console.log('清理後的內容:', cleanContent);
-        return null;
-      }
-    } catch (error) {
-      console.error('翻譯失敗:', error);
-      return null;
-    }
-  };
-
-  const handleTranslate = async (targetLang: 'vi' | 'zh') => {
-    try {
-      const messagesToTranslate = messages
-        .filter(msg => !msg.isSystem)
-        .map(msg => msg.message);
-
-      if (messagesToTranslate.length === 0) {
-        addSystemMessage('沒有可翻譯的訊息');
-        return;
-      }
-
-      addSystemMessage('正在翻譯訊息...');
-      const translations = await translateMessages(messagesToTranslate, targetLang);
-      
-      if (translations && Array.isArray(translations)) {
-        const newTranslations: Record<string, string> = {};
-        messages
-          .filter(msg => !msg.isSystem)
-          .forEach((msg, index) => {
-            if (translations[index]) {
-              newTranslations[msg.id] = translations[index];
-            }
-          });
-        
-        setTranslatedMessages(newTranslations);
-        setIsTranslateDialogOpen(false);
-        addSystemMessage('訊息翻譯完成');
-      } else {
-        addSystemMessage('翻譯失敗，請稍後再試');
-      }
-    } catch (error) {
-      console.error('翻譯處理失敗:', error);
-      addSystemMessage('翻譯處理失敗');
-    }
+  const handleTranslateClick = (targetLang: 'vi' | 'zh') => {
+    handleTranslate(messages, targetLang);
+    setIsTranslateDialogOpen(false);
   };
 
   if (!isVisible) return null;
@@ -368,7 +300,11 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
             size="icon"
             onClick={() => setIsTranslateDialogOpen(true)}
             className="h-8 w-8"
-            title="翻���訊息"
+            title={
+              autoTranslateLanguage === 'none' 
+                ? "翻譯設定" 
+                : `即時翻譯已開啟（${autoTranslateLanguage === 'vi' ? '中→越' : '越→中'}）`
+            }
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -376,7 +312,7 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
               height="16"
               viewBox="0 0 24 24"
               fill="none"
-              stroke="currentColor"
+              stroke={autoTranslateLanguage === 'none' ? "currentColor" : "#2563eb"}
               strokeWidth="2"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -508,17 +444,74 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
       </div>
 
       <Dialog open={isTranslateDialogOpen} onOpenChange={setIsTranslateDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>選擇翻譯方向</DialogTitle>
+            <DialogTitle>翻譯設定</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
-            <Button onClick={() => handleTranslate('vi')}>
-              繁體中文 → 越南文
-            </Button>
-            <Button onClick={() => handleTranslate('zh')}>
-              越南文 → 繁體中文
-            </Button>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-4">
+              <h4 className="font-medium">即時翻譯</h4>
+              <div className="grid grid-cols-1 gap-2">
+                <Button 
+                  variant={autoTranslateLanguage === 'none' ? "default" : "outline"}
+                  onClick={() => {
+                    setAutoTranslateLanguage('none');
+                    addSystemMessage('已關閉即時翻譯');
+                  }}
+                >
+                  關閉翻譯
+                  {autoTranslateLanguage === 'none' && " ✓"}
+                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button 
+                    variant={autoTranslateLanguage === 'vi' ? "default" : "outline"}
+                    onClick={() => {
+                      setAutoTranslateLanguage(autoTranslateLanguage === 'vi' ? 'none' : 'vi');
+                      addSystemMessage(
+                        autoTranslateLanguage === 'vi' 
+                          ? '已關閉即時翻譯' 
+                          : '已開啟即時翻譯（中文→越南文）'
+                      );
+                    }}
+                  >
+                    中文→越南文
+                    {autoTranslateLanguage === 'vi' && " ✓"}
+                  </Button>
+                  <Button 
+                    variant={autoTranslateLanguage === 'zh' ? "default" : "outline"}
+                    onClick={() => {
+                      setAutoTranslateLanguage(autoTranslateLanguage === 'zh' ? 'none' : 'zh');
+                      addSystemMessage(
+                        autoTranslateLanguage === 'zh' 
+                          ? '已關閉即時翻譯' 
+                          : '已開啟即時翻譯（越南文→中文）'
+                      );
+                    }}
+                  >
+                    越南文→中文
+                    {autoTranslateLanguage === 'zh' && " ✓"}
+                  </Button>
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+              
+              <h4 className="font-medium">聊天記錄翻譯</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleTranslateClick('vi')}
+                >
+                  中文→越南文
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleTranslateClick('zh')}
+                >
+                  越南文→中文
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
