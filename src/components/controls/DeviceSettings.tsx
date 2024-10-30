@@ -1,5 +1,5 @@
 import React from 'react';
-import { MediaDevice } from "@zoom/videosdk";
+import { MediaDevice } from '@zoom/videosdk';
 
 interface DeviceManagerProps {
   audioInputDevices: MediaDevice[];
@@ -11,7 +11,7 @@ interface DeviceManagerProps {
   switchAudioDevice: (deviceId: string) => void;
   switchVideoDevice: (deviceId: string) => void;
   switchSpeakerDevice: (deviceId: string) => void;
-}
+} 
 
 const DeviceManager: React.FC<DeviceManagerProps> = ({
   audioInputDevices,
