@@ -278,9 +278,9 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
             onClick={() => setIsTranslateDialogOpen(true)}
             className="h-8 w-8"
             title={
-              autoTranslateLanguage === 'none' 
-                ? "翻譯設定" 
-                : `即時翻譯已開啟（${autoTranslateLanguage === 'vi' ? '中→越' : '越→中'}）`
+              autoTranslateLanguage === 'none'
+                ? "翻譯設定"
+                : `即時翻譯已開啟（${translationConfig.languages[autoTranslateLanguage].displayPair}）`
             }
           >
             <svg
