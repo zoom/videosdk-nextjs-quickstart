@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { ChatMessage } from '@/types/chat';
+import { translationConfig, getApiConfig } from '@/config/translation';
 
-export type TranslationLanguage = 'none' | 'vi' | 'zh';
+export type TranslationLanguage = keyof typeof translationConfig.languages;
 
 interface UseTranslationProps {
   addSystemMessage: (message: string) => void;
@@ -9,7 +10,7 @@ interface UseTranslationProps {
 
 export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
   const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>({});
-  const [autoTranslateLanguage, setAutoTranslateLanguage] = useState<TranslationLanguage>('none');
+  const [autoTranslateLanguage, setAutoTranslateLanguage] = useState<TranslationLanguage>(translationConfig.defaultSourceLang as TranslationLanguage);
 
   const handleAutoTranslateLanguageChange = (language: TranslationLanguage) => {
     setAutoTranslateLanguage(language);
@@ -18,16 +19,28 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
     }
   };
 
-  const translateMessages = async (messages: string[], targetLang: 'vi' | 'zh') => {
+  const translateMessages = async (
+    messages: string[], 
+    targetLang: TranslationLanguage
+  ) => {
+    const { apiUrl, apiKey } = getApiConfig();
+    
+    if (!apiUrl) {
+      console.error('API URL 未設置');
+      return null;
+    }
+    
+    if (!apiKey) {
+      console.error('API Key 未設置');
+      return null;
+    }
+
+    if (!translationConfig.languages[targetLang]) {
+      console.error(`不支援的語言: ${targetLang}`);
+      return null;
+    }
+
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-      const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-
-      if (!apiUrl || !apiKey) {
-        console.error('翻譯 API 設定缺失');
-        return null;
-      }
-
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -38,9 +51,7 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
           messages: [
             {
               role: "system",
-              content: targetLang === 'vi' 
-                ? "You are a translator. Translate the following Traditional Chinese messages into Vietnamese. Only return the translated array in valid JSON format, nothing else."
-                : "You are a translator. Translate the following Vietnamese messages into Traditional Chinese. Only return the translated array in valid JSON format, nothing else."
+              content: translationConfig.languages[targetLang].systemPrompt
             },
             {
               role: "user",
@@ -70,7 +81,10 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
     }
   };
 
-  const handleTranslate = async (messages: ChatMessage[], targetLang: 'vi' | 'zh') => {
+  const handleTranslate = async (
+    messages: ChatMessage[], 
+    targetLang: keyof typeof translationConfig.languages
+  ) => {
     try {
       const messagesToTranslate = messages
         .filter(msg => !msg.isSystem)
