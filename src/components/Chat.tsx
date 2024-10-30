@@ -11,6 +11,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface FileInfo {
   name: string;
@@ -55,6 +62,9 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
   const [isConnected, setIsConnected] = useState(true);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const initializedRef = useRef(false);
+  const [isTranslateMenuOpen, setIsTranslateMenuOpen] = useState(false);
+  const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>({});
+  const [isTranslateDialogOpen, setIsTranslateDialogOpen] = useState(false);
 
   const addSystemMessage = (message: string) => {
     const systemMessage: ChatMessage = {
@@ -247,6 +257,90 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
     }
   };
 
+  const translateMessages = async (messages: string[], targetLang: 'vi' | 'zh') => {
+    try {
+      const response = await fetch('https://smartchinese.openai.azure.com/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-02-15-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': '3seF87oOjYnddZVbCiShjnjzaVXa82zky4j3oJVhtfxa8VHuUnWqJQQJ99AJAC4f1cMXJ3w3AAABACOG7HRG'
+        },
+        body: JSON.stringify({
+          messages: [
+            {
+              role: "system",
+              content: targetLang === 'vi' 
+                ? "You are a translator. Translate the following Traditional Chinese messages into Vietnamese. Only return the translated array in valid JSON format, nothing else."
+                : "You are a translator. Translate the following Vietnamese messages into Traditional Chinese. Only return the translated array in valid JSON format, nothing else."
+            },
+            {
+              role: "user",
+              content: JSON.stringify(messages)
+            }
+          ],
+          temperature: 0.3,
+          top_p: 0.3,
+          max_tokens: 2000,
+          stream: false
+        })
+      });
+
+      const data = await response.json();
+      
+      // 嘗試清理回應內容，移除可能的 markdown 標記
+      let cleanContent = data.choices[0].message.content;
+      cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      
+      try {
+        const translatedArray = JSON.parse(cleanContent);
+        return translatedArray;
+      } catch (parseError) {
+        console.error('JSON 解析失敗:', parseError);
+        console.log('清理後的內容:', cleanContent);
+        return null;
+      }
+    } catch (error) {
+      console.error('翻譯失敗:', error);
+      return null;
+    }
+  };
+
+  const handleTranslate = async (targetLang: 'vi' | 'zh') => {
+    try {
+      const messagesToTranslate = messages
+        .filter(msg => !msg.isSystem)
+        .map(msg => msg.message);
+
+      if (messagesToTranslate.length === 0) {
+        addSystemMessage('沒有可翻譯的訊息');
+        return;
+      }
+
+      addSystemMessage('正在翻譯訊息...');
+      const translations = await translateMessages(messagesToTranslate, targetLang);
+      
+      if (translations && Array.isArray(translations)) {
+        const newTranslations: Record<string, string> = {};
+        messages
+          .filter(msg => !msg.isSystem)
+          .forEach((msg, index) => {
+            if (translations[index]) {
+              newTranslations[msg.id] = translations[index];
+            }
+          });
+        
+        setTranslatedMessages(newTranslations);
+        setIsTranslateDialogOpen(false);
+        addSystemMessage('訊息翻譯完成');
+      } else {
+        addSystemMessage('翻譯失敗，請稍後再試');
+      }
+    } catch (error) {
+      console.error('翻譯處理失敗:', error);
+      addSystemMessage('翻譯處理失敗');
+    }
+  };
+
   if (!isVisible) return null;
 
   const isHost = currentUser?.isHost || currentUser?.isCoHost;
@@ -269,6 +363,32 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
           <h3 className="font-semibold">聊天室</h3>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsTranslateDialogOpen(true)}
+            className="h-8 w-8"
+            title="翻���訊息"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 8l6 6" />
+              <path d="M4 14h7" />
+              <path d="M2 5h12" />
+              <path d="M7 2h1" />
+              <path d="M22 22l-5-10-5 10" />
+              <path d="M14 18h6" />
+            </svg>
+          </Button>
           {isHost && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -352,6 +472,15 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
             >
               {msg.message}
             </div>
+            {!msg.isSystem && translatedMessages[msg.id] && (
+              <div
+                className={`rounded-lg px-4 py-2 max-w-[80%] break-words mt-1 text-sm ${
+                  msg.senderId === currentUser?.userId ? 'bg-blue-300 text-white' : 'bg-gray-50'
+                }`}
+              >
+                {translatedMessages[msg.id]}
+              </div>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
@@ -377,6 +506,22 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
           發送
         </Button>
       </div>
+
+      <Dialog open={isTranslateDialogOpen} onOpenChange={setIsTranslateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>選擇翻譯方向</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <Button onClick={() => handleTranslate('vi')}>
+              繁體中文 → 越南文
+            </Button>
+            <Button onClick={() => handleTranslate('zh')}>
+              越南文 → 繁體中文
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
