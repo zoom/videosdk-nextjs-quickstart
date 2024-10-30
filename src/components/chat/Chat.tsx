@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { VideoClient, ChatPrivilege } from "@zoom/videosdk";
-import { MessageCircle, X, Settings } from "lucide-react";
+import { MessageCircle, X, Settings, Paperclip } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,8 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
     setMessages,
     addSystemMessage,
     addChatMessage,
+    sendFile,
+    handleFileReceived
   } = useChats();
 
   const {
@@ -61,6 +63,7 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const initializedRef = useRef(false);
   const [isTranslateDialogOpen, setIsTranslateDialogOpen] = useState(false);
+  const [isFileTransferEnabled, setIsFileTransferEnabled] = useState(false);
 
   const handlePrivilegeChange = async (privilege: ChatPrivilege) => {
     if (!chatClient) return;
@@ -78,21 +81,45 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         const chat = client.current.getChatClient();
         setChatClient(chat);
         setIsConnected(true);
+        
+        // 檢查檔案傳輸功能是否啟用
+        const fileTransferEnabled = chat.isFileTransferEnabled();
+        setIsFileTransferEnabled(fileTransferEnabled);
+        
+        if (!fileTransferEnabled) {
+          addSystemMessage('檔案傳輸功能未啟用');
+        }
 
         // 獲取歷史訊息
         const loadChatHistory = async () => {
           try {
             const history = await chat.getHistory();
-            const formattedHistory: ChatMessage[] = history.map((msg: any) => ({
-              id: `history-${msg.timestamp}-${msg.sender.userId}`,
-              senderId: msg.sender.userId,
-              senderName: msg.sender.name || '未知用戶',
-              message: msg.message,
-              timestamp: msg.timestamp,
-              isPrivate: !!msg.receiver && msg.receiver.userId !== 0,
-              receiverId: msg.receiver?.userId === 0 ? undefined : msg.receiver?.userId,
-              isSystem: false
-            }));
+            const formattedHistory: ChatMessage[] = history.map((msg: any) => {
+              const baseMessage = {
+                id: `history-${msg.timestamp}-${msg.sender.userId}`,
+                senderId: msg.sender.userId,
+                senderName: msg.sender.name || '未知用戶',
+                message: msg.message || (msg.file ? `已發送檔案: ${msg.file.name}` : ''),
+                timestamp: msg.timestamp,
+                isPrivate: !!msg.receiver && msg.receiver.userId !== 0,
+                receiverId: msg.receiver?.userId === 0 ? undefined : msg.receiver?.userId,
+                isSystem: false
+              };
+
+              // 如果訊息包含檔案，添加檔案資訊
+              if (msg.file) {
+                return {
+                  ...baseMessage,
+                  fileInfo: {
+                    name: msg.file.name,
+                    size: msg.file.size,
+                    url: msg.file.fileUrl // 這裡先存儲 fileUrl，之後點擊時再下載
+                  }
+                };
+              }
+
+              return baseMessage;
+            });
             setMessages(formattedHistory);
           } catch (error) {
             console.error('獲取聊天記錄失敗:', error);
@@ -140,7 +167,10 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         };
 
         const handleChatMessage = async (payload: any) => {
-          const { message, sender, receiver, timestamp } = payload;
+          const { message, sender, receiver, timestamp, file } = payload;
+
+          // 如果是傳輸檔案的記錄就不顯示訊息
+          if (file) return;
           
           if (!sender || !sender.userId) return;
 
@@ -187,11 +217,14 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         client.current.on('user-added', handleUserAdded);
         client.current.on('user-removed', handleUserRemoved);
 
+        client.current.on('chat-file-received', (payload) => handleFileReceived({ ...payload, chatClient }));
+
         return () => {
           client.current.off('chat-privilege-change', handlePrivilegeChangeEvent);
           client.current.off('chat-on-message', handleChatMessage);
           client.current.off('user-added', handleUserAdded);
           client.current.off('user-removed', handleUserRemoved);
+          client.current.off('chat-file-received', handleFileReceived);
         };
       } catch (error) {
         console.error('初始化聊天室時出錯:', error);
@@ -248,6 +281,52 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
   const handleTranslateClick = (targetLang: 'vi' | 'zh') => {
     handleTranslate(messages, targetLang);
     setIsTranslateDialogOpen(false);
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !chatClient) return;
+    
+    if (!isFileTransferEnabled) {
+      addSystemMessage('檔案傳輸功能未啟用');
+      event.target.value = '';
+      return;
+    }
+    
+    await sendFile(chatClient, file, selectedReceiver, participants, currentUser);
+    event.target.value = '';
+  };
+
+  const handleFileDownload = async (fileUrl: string, fileName: string, messageId: string) => {
+    try {
+      const downloadedFile = await chatClient.downloadFile(messageId, fileUrl);
+      if (downloadedFile instanceof Error) {
+        throw downloadedFile;
+      }
+
+      // 等待檔案下載完成
+      const blob = await new Promise((resolve, reject) => {
+        downloadedFile.onDownloadComplete = (blob: Blob) => {
+          resolve(blob);
+        };
+        downloadedFile.onDownloadError = (error: Error) => {
+          reject(error);
+        };
+      });
+
+      // 創建下載連結
+      const url = URL.createObjectURL(blob as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('下載檔案失敗:', error);
+      addSystemMessage('下載檔案失敗');
+    }
   };
 
   if (!isVisible) return null;
@@ -394,12 +473,40 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
                 {translatedMessages[msg.id]}
               </div>
             )}
+            {msg.fileInfo && (
+              <button
+                onClick={() => handleFileDownload(msg.fileInfo!.url, msg.fileInfo!.name, msg.id)}
+                className="text-blue-500 hover:underline cursor-pointer flex items-center gap-2"
+              >
+                <Paperclip className="h-4 w-4" />
+                下載檔案: {msg.fileInfo.name} 
+                ({Math.round(msg.fileInfo.size / 1024)}KB)
+              </button>
+            )}
           </div>
         ))}
         <div ref={messagesEndRef} />
       </div>
 
       <div className="p-4 border-t flex gap-2">
+        <Input
+          type="file"
+          onChange={handleFileUpload}
+          className="hidden"
+          id="file-upload"
+          disabled={!isConnected || !isMessageAllowed() || participants.length <= 1 || !isFileTransferEnabled}
+        />
+        <label
+          htmlFor="file-upload"
+          className={`cursor-pointer px-4 py-2 bg-gray-100 rounded hover:bg-gray-200 flex items-center gap-2 ${
+            !isConnected || !isMessageAllowed() || participants.length <= 1 || !isFileTransferEnabled 
+              ? 'opacity-50 cursor-not-allowed' 
+              : ''
+          }`}
+          title={!isFileTransferEnabled ? '檔案傳輸功能未啟用' : ''}
+        >
+          <Paperclip className="h-4 w-4" />
+        </label>
         <Input
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
