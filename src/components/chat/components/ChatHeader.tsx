@@ -1,6 +1,7 @@
 import React from 'react';
+import { MessageCircle, X, Settings } from "lucide-react";
 import { ChatPrivilege } from "@zoom/videosdk";
-import { Languages, MessageCircle, Settings, X } from "lucide-react";
+import { TranslationLanguage } from '@/config/translation';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,24 +14,30 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { privilegeDescriptions } from '@/config/chat';
+import { translationConfig } from '@/config/translation';
 
 interface ChatHeaderProps {
   onClose: () => void;
+  onOpenTranslateDialog: () => void;
+  autoTranslateLanguage: TranslationLanguage;
   isHost: boolean;
-  autoTranslateLanguage: string;
   currentPrivilege: ChatPrivilege;
   onPrivilegeChange: (privilege: ChatPrivilege) => void;
-  onTranslateClick: () => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
   onClose,
-  isHost,
+  onOpenTranslateDialog,
   autoTranslateLanguage,
+  isHost,
   currentPrivilege,
-  onPrivilegeChange,
-  onTranslateClick
+  onPrivilegeChange
 }) => {
+  const getTranslationTitle = () => {
+    if (autoTranslateLanguage === 'none') return "翻譯設定";
+    return `即時翻譯已開啟（${translationConfig.languages[autoTranslateLanguage].displayPair}）`;
+  };
+
   return (
     <div className="flex items-center justify-between p-4 border-b">
       <div className="flex items-center">
@@ -38,43 +45,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         <h3 className="font-semibold">聊天室</h3>
       </div>
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onTranslateClick}
-          className="h-8 w-8"
-          title={
-            autoTranslateLanguage === 'none' 
-              ? "翻譯設定" 
-              : `即時翻譯已開啟（${autoTranslateLanguage === 'vi' ? '中→越' : '越→中'}）`
-          }
-        >
-          <Languages className={`h-4 w-4 ${autoTranslateLanguage !== 'none' ? 'text-blue-500' : ''}`} />
-        </Button>
-        
+        <TranslationButton 
+          onClick={onOpenTranslateDialog}
+          autoTranslateLanguage={autoTranslateLanguage}
+          title={getTranslationTitle()}
+        />
         {isHost && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>聊天室權限設定</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {Object.entries(privilegeDescriptions).map(([privilege, description]) => (
-                <DropdownMenuItem
-                  key={privilege}
-                  onClick={() => onPrivilegeChange(Number(privilege) as ChatPrivilege)}
-                >
-                  {description as string}
-                  {currentPrivilege === Number(privilege) && " ✓"}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <PrivilegeDropdown 
+            currentPrivilege={currentPrivilege}
+            onPrivilegeChange={onPrivilegeChange}
+          />
         )}
-        
         <Button 
           variant="ghost" 
           size="icon" 
@@ -87,3 +68,66 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     </div>
   );
 };
+
+const TranslationButton: React.FC<{
+  onClick: () => void;
+  autoTranslateLanguage: TranslationLanguage;
+  title: string;
+}> = ({ onClick, autoTranslateLanguage, title }) => (
+  <Button
+    variant="ghost"
+    size="icon"
+    onClick={onClick}
+    className="h-8 w-8"
+    title={title}
+  >
+    <TranslationIcon active={autoTranslateLanguage !== 'none' as TranslationLanguage} />
+  </Button>
+);
+
+const TranslationIcon = ({ active }: { active: boolean }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke={active ? "#2563eb" : "currentColor"}
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M5 8l6 6" />
+    <path d="M4 14h7" />
+    <path d="M2 5h12" />
+    <path d="M7 2h1" />
+    <path d="M22 22l-5-10-5 10" />
+    <path d="M14 18h6" />
+  </svg>
+);
+
+const PrivilegeDropdown: React.FC<{
+  currentPrivilege: ChatPrivilege;
+  onPrivilegeChange: (privilege: ChatPrivilege) => void;
+}> = ({ currentPrivilege, onPrivilegeChange }) => (
+  <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+      <Button variant="ghost" size="icon" className="h-8 w-8">
+        <Settings className="h-4 w-4" />
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end">
+      <DropdownMenuLabel>聊天室權限設定</DropdownMenuLabel>
+      <DropdownMenuSeparator />
+      {Object.entries(privilegeDescriptions).map(([privilege, description]) => (
+        <DropdownMenuItem
+          key={privilege}
+          onClick={() => onPrivilegeChange(Number(privilege) as ChatPrivilege)}
+        >
+          {description}
+          {currentPrivilege === Number(privilege) && " ✓"}
+        </DropdownMenuItem>
+      ))}
+    </DropdownMenuContent>
+  </DropdownMenu>
+);

@@ -7,9 +7,10 @@ export type TranslationLanguage = keyof typeof translationConfig.languages;
 
 interface UseTranslationProps {
   addSystemMessage: (message: string) => void;
+  currentUser?: any;
 }
 
-export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
+export const useTranslation = ({ addSystemMessage, currentUser }: UseTranslationProps) => {
   const [translatedMessages, setTranslatedMessages] = useState<Record<string, string>>(() => {
     // 從 localStorage 讀取已翻譯的訊息
     const saved = localStorage.getItem('translatedMessages');
@@ -92,7 +93,7 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
     }
   };
 
-  const handleTranslate = async (
+  const translateChatHistory = async (
     messages: ChatMessage[], 
     targetLang: TranslationLanguage
   ) => {
@@ -140,13 +141,32 @@ export const useTranslation = ({ addSystemMessage }: UseTranslationProps) => {
     }));
   };
 
+  const handleTranslateNewMessage = async (message: string, senderId: number, messageId: string) => {
+    if (
+      autoTranslateLanguage === 'none' || 
+      !currentUser || 
+      senderId === currentUser.userId
+    ) {
+      return;
+    }
+
+    try {
+      const translations = await translateMessages([message], autoTranslateLanguage);
+      if (translations && Array.isArray(translations) && translations[0]) {
+        setTranslation(messageId, translations[0]);
+      }
+    } catch (error) {
+      console.error('自動翻譯失敗:', error);
+    }
+  };
+
   return {
     translatedMessages,
     setTranslatedMessages,
     autoTranslateLanguage,
     setAutoTranslateLanguage: handleAutoTranslateLanguageChange,
-    translateMessages,
-    handleTranslate,
-    setTranslation
+    setTranslation,
+    translateChatHistory,
+    handleTranslateNewMessage,
   };
 };
