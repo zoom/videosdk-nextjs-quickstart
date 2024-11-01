@@ -1,20 +1,13 @@
 import { useState } from 'react';
-import { FileMessage, ChatClient, ChatFileUploadStatus, ChatFileDownloadStatus } from '@/types/chat';
+import { FileMessage } from '@/types/chat';
 
 interface UseFileTransferProps {
   addSystemMessage: (message: string) => void;
   setMessages: React.Dispatch<React.SetStateAction<FileMessage[]>>;
 }
 
-interface FileProgress {
-  fileName: string;
-  progress: number;
-  status: ChatFileUploadStatus | ChatFileDownloadStatus;
-}
-
 export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransferProps) => {
   const [isFileTransferEnabled, setIsFileTransferEnabled] = useState(false);
-  const [fileProgress, setFileProgress] = useState<FileProgress | null>(null);
 
   const formatHistoryWithFile = (history: any[]) => {
     return history.map((msg: any) => {
@@ -61,12 +54,6 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
         throw new Error('檔案大小不能超過 30MB');
       }
 
-      setFileProgress({
-        fileName: file.name,
-        progress: 0,
-        status: ChatFileUploadStatus.InProgress
-      });
-
       if (receiver === 'all') {
         for (const user of otherUsers) {
           const cancelUpload = await chatClient.sendFile(file, user.userId);
@@ -74,12 +61,6 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
           if (cancelUpload instanceof Error) {
             throw cancelUpload;
           }
-          
-          setFileProgress(prev => ({
-            ...prev!,
-            progress: 100,
-            status: ChatFileUploadStatus.Success
-          }));
         }
       } else {
         const cancelUpload = await chatClient.sendFile(file, receiver);
@@ -87,26 +68,26 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
         if (cancelUpload instanceof Error) {
           throw cancelUpload;
         }
-
-        setFileProgress(prev => ({
-          ...prev!,
-          progress: 100,
-          status: ChatFileUploadStatus.Success
-        }));
       }
 
-      try {
-        const history = await chatClient.getHistory();
-        const formattedHistory = formatHistoryWithFile(history);
-        setMessages(formattedHistory);
-      } catch (error) {
-        console.error('重新載入聊天記錄失敗:', error);
-      }
+      const newFileMessage: FileMessage = {
+        id: `file-${Date.now()}-${Math.random()}`,
+        senderId: currentUser.userId,
+        senderName: currentUser.name || '未知用戶',
+        message: `已發送檔案: ${file.name}`,
+        timestamp: Date.now(),
+        isPrivate: receiver !== 'all',
+        receiverId: receiver === 'all' ? undefined : receiver,
+        isSystem: false,
+        fileInfo: {
+          name: file.name,
+          size: file.size,
+          url: ''
+        }
+      };
+
+      setMessages(prev => [...prev, newFileMessage]);
     } catch (error: any) {
-      setFileProgress(prev => ({
-        ...prev!,
-        status: ChatFileUploadStatus.Fail
-      }));
       console.error('發送檔案失敗:', error);
       addSystemMessage(`發送檔案失敗: ${error.message}`);
     }
@@ -146,12 +127,6 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
     messageId: string
   ) => {
     try {
-      setFileProgress({
-        fileName,
-        progress: 0,
-        status: ChatFileDownloadStatus.InProgress
-      });
-
       const downloadedFile = await chatClient.downloadFile(messageId, fileUrl);
       if (downloadedFile instanceof Error) {
         throw downloadedFile;
@@ -159,18 +134,9 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
 
       const blob = await new Promise((resolve, reject) => {
         downloadedFile.onDownloadComplete = (blob: Blob) => {
-          setFileProgress(prev => ({
-            ...prev!,
-            progress: 100,
-            status: ChatFileDownloadStatus.Success
-          }));
           resolve(blob);
         };
         downloadedFile.onDownloadError = (error: Error) => {
-          setFileProgress(prev => ({
-            ...prev!,
-            status: ChatFileDownloadStatus.Fail
-          }));
           reject(error);
         };
       });
@@ -184,10 +150,6 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      setFileProgress(prev => ({
-        ...prev!,
-        status: ChatFileDownloadStatus.Fail
-      }));
       console.error('下載檔案失敗:', error);
       addSystemMessage('下載檔案失敗');
     }
@@ -230,8 +192,6 @@ export const useFileTransfer = ({ addSystemMessage, setMessages }: UseFileTransf
     sendFile,
     handleFileReceived,
     downloadFile,
-    fileProgress,
-    setFileProgress,
     handleFileUploadEvent,
     initializeFileTransfer,
   };
