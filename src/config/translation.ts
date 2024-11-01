@@ -1,7 +1,5 @@
-// 定義有效的翻譯語言（不包含 'none'）
-export type TranslationLanguage = 'vi' | 'zh';
+export type TranslationLanguage = 'vi' | 'zh' | 'none';
 
-// 定義所有語言（包含 'none'）
 export type AllLanguages = TranslationLanguage | 'none';
 
 // 定義語言設定的介面
