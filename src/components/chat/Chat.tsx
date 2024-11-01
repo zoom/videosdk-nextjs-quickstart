@@ -168,7 +168,7 @@ const Chat: React.FC<ChatProps> = ({ client, isVisible, onClose }) => {
         setIsConnected(false);
       }
     }
-  }, [isVisible, client]);
+  }, [isVisible, client, autoTranslateLanguage]);
 
   useEffect(() => {
     if (currentPrivilege === ChatPrivilege.EveryonePublicly) {
