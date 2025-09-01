@@ -11,7 +11,7 @@
   "dependencies": {
     "@radix-ui/react-slot": "^1.0.2",
     "@types/jsrsasign": "^10.5.14",
-    "@zoom/videosdk": "^2.2.5",
+    "@zoom/videosdk": "^2.2.10",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "jsrsasign": "^11.1.0",
