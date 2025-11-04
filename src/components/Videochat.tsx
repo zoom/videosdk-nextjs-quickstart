@@ -1,11 +1,7 @@
 "use client";
 
 import { CSSProperties, useRef, useState } from "react";
-import ZoomVideo, {
-  type VideoClient,
-  VideoQuality,
-  type VideoPlayer,
-} from "@zoom/videosdk";
+import ZoomVideo, { VideoQuality, type VideoPlayer } from "@zoom/videosdk";
 import { CameraButton, MicButton } from "./MuteButtons";
 import { PhoneOff } from "lucide-react";
 import { Button } from "./ui/button";
@@ -14,30 +10,33 @@ const Videochat = (props: { slug: string; JWT: string }) => {
   const session = props.slug;
   const jwt = props.JWT;
   const [inSession, setInSession] = useState(false);
-  const client = useRef<typeof VideoClient>(ZoomVideo.createClient());
-  const [isVideoMuted, setIsVideoMuted] = useState(!client.current.getCurrentUserInfo()?.bVideoOn);
-  const [isAudioMuted, setIsAudioMuted] = useState(client.current.getCurrentUserInfo()?.muted ?? true);
+  const client = ZoomVideo.createClient()
+  const [isVideoMuted, setIsVideoMuted] = useState(!client.getCurrentUserInfo()?.bVideoOn);
+  const [isAudioMuted, setIsAudioMuted] = useState(client.getCurrentUserInfo()?.muted ?? true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
 
   const joinSession = async () => {
-    await client.current.init("en-US", "Global", { patchJsMedia: true });
-    client.current.on("peer-video-state-change", renderVideo);
-    await client.current.join(session, jwt, userName)
-      .catch((e) => console.log(e));
+    await client.init("en-US", "Global", { patchJsMedia: true });
+    client.on("peer-video-state-change", renderVideo);
+    await client.join(session, jwt, userName).catch((e) => console.log(e));
     setInSession(true);
-    const mediaStream = client.current.getMediaStream();
+    const mediaStream = client.getMediaStream();
     await mediaStream.startAudio();
     setIsAudioMuted(mediaStream.isAudioMuted());
     await mediaStream.startVideo();
     setIsVideoMuted(!mediaStream.isCapturingVideo());
-    await renderVideo({ action: "Start", userId: client.current.getCurrentUserInfo().userId, });
+    await renderVideo({ action: "Start", userId: client.getCurrentUserInfo().userId, });
   };
 
   const renderVideo = async (event: { action: "Start" | "Stop"; userId: number; }) => {
-    const mediaStream = client.current.getMediaStream();
+    const mediaStream = client.getMediaStream();
     if (event.action === "Stop") {
       const element = await mediaStream.detachVideo(event.userId);
-      Array.isArray(element) ? element.forEach((el) => el.remove()) : element.remove();
+      if (Array.isArray(element)) {
+        element.forEach((el) => el.remove())
+      } else {
+        if (element) element.remove();
+      }
     } else {
       const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_360P);
       videoContainerRef.current!.appendChild(userVideo as VideoPlayer);
@@ -45,8 +44,8 @@ const Videochat = (props: { slug: string; JWT: string }) => {
   };
 
   const leaveSession = async () => {
-    client.current.off("peer-video-state-change", renderVideo);
-    await client.current.leave().catch((e) => console.log("leave error", e));
+    client.off("peer-video-state-change", renderVideo);
+    await client.leave().catch((e) => console.log("leave error", e));
     // hard refresh to clear the state
     window.location.href = "/";
   };
