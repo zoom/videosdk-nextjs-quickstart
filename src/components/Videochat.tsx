@@ -1,7 +1,7 @@
 "use client";
 
 import { CSSProperties, useRef, useState } from "react";
-import ZoomVideo, { VideoQuality, type VideoPlayer } from "@zoom/videosdk";
+import ZoomVideo, { MediaType, VideoQuality, type VideoPlayer } from "@zoom/videosdk";
 import { CameraButton, MicButton } from "./MuteButtons";
 import { PhoneOff } from "lucide-react";
 import { Button } from "./ui/button";
@@ -10,7 +10,7 @@ const Videochat = (props: { slug: string; JWT: string }) => {
   const session = props.slug;
   const jwt = props.JWT;
   const [inSession, setInSession] = useState(false);
-  const client = ZoomVideo.createClient()
+  const client = ZoomVideo.createClient();
   const [isVideoMuted, setIsVideoMuted] = useState(!client.getCurrentUserInfo()?.bVideoOn);
   const [isAudioMuted, setIsAudioMuted] = useState(client.getCurrentUserInfo()?.muted ?? true);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -25,15 +25,26 @@ const Videochat = (props: { slug: string; JWT: string }) => {
     setIsAudioMuted(mediaStream.isAudioMuted());
     await mediaStream.startVideo();
     setIsVideoMuted(!mediaStream.isCapturingVideo());
-    await renderVideo({ action: "Start", userId: client.getCurrentUserInfo().userId, });
+    await renderVideo({ action: "Start", userId: client.getCurrentUserInfo().userId });
+
+    const params = {
+      name: "white-noise-processor",
+      type: "audio" as MediaType,
+      url: "http://localhost:3000/proc.js",
+      options: {},
+    };
+    const processor = await mediaStream.createProcessor(params);
+    await mediaStream.addProcessor(processor);
+    // Remove a processor
+    // await mediaStream.removeProcessor(processor);
   };
 
-  const renderVideo = async (event: { action: "Start" | "Stop"; userId: number; }) => {
+  const renderVideo = async (event: { action: "Start" | "Stop"; userId: number }) => {
     const mediaStream = client.getMediaStream();
     if (event.action === "Stop") {
       const element = await mediaStream.detachVideo(event.userId);
       if (Array.isArray(element)) {
-        element.forEach((el) => el.remove())
+        element.forEach((el) => el.remove());
       } else {
         if (element) element.remove();
       }
@@ -52,13 +63,8 @@ const Videochat = (props: { slug: string; JWT: string }) => {
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
-      <h1 className="text-center text-3xl font-bold mb-4 mt-0">
-        Session: {session}
-      </h1>
-      <div
-        className="flex w-full flex-1"
-        style={inSession ? {} : { display: "none" }}
-      >
+      <h1 className="text-center text-3xl font-bold mb-4 mt-0">Session: {session}</h1>
+      <div className="flex w-full flex-1" style={inSession ? {} : { display: "none" }}>
         {/* @ts-expect-error html component */}
         <video-player-container ref={videoContainerRef} style={videoPlayerStyle} />
       </div>
