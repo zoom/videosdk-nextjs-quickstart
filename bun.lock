@@ -7,7 +7,8 @@
       "dependencies": {
         "@radix-ui/react-slot": "^1.2.4",
         "@types/jsrsasign": "^10.5.15",
-        "@zoom/videosdk": "^2.3.12",
+        "@zoom/videosdk": "^2.3.14",
+        "@zoom/videosdk-react": "^0.0.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "jsrsasign": "^11.1.0",
@@ -228,7 +229,9 @@
 
     "@typescript-eslint/visitor-keys": ["@typescript-eslint/visitor-keys@8.46.3", "", { "dependencies": { "@typescript-eslint/types": "8.46.3", "eslint-visitor-keys": "^4.2.1" } }, "sha512-uk574k8IU0rOF/AjniX8qbLSGURJVUCeM5e4MIMKBFFi8weeiLrG1fyQejyLXQpRZbU/1BuQasleV/RfHC3hHg=="],
 
-    "@zoom/videosdk": ["@zoom/videosdk@2.3.12", "", {}, "sha512-TtmW43dsOZnvDSPwMDDhtJkJZ8tCBAnR6yIWJt3YxPDXaZugCVzHYxxSZtQ2XPeAoD9jmYf/juwFxTtOli9/zA=="],
+    "@zoom/videosdk": ["@zoom/videosdk@2.3.14", "", {}, "sha512-H5OtneAdF6o8iRP0e7LkXY1U0F5kajzBVvEH+OCTNS8PKJxrxetC6SmeJQaRpSJ/363aZ0st5psJra5bujwiUw=="],
+
+    "@zoom/videosdk-react": ["@zoom/videosdk-react@0.0.1", "", { "peerDependencies": { "@zoom/videosdk": "^2.3.5", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-hPod4iliBejd1WqIWIvmcoRCTSH1aWj2TMa2ScWwj7T/GqoFz1hQDWaZj8L2Q/0dVaa//I/FAlAzmpPWdd1GEA=="],
 
     "acorn": ["acorn@8.15.0", "", { "bin": { "acorn": "bin/acorn" } }, "sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg=="],
 

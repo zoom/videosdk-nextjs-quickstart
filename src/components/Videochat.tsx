@@ -1,99 +1,65 @@
 "use client";
-
-import { CSSProperties, useRef, useState } from "react";
-import ZoomVideo, { VideoQuality, type VideoPlayer } from "@zoom/videosdk";
-import { CameraButton, MicButton } from "./MuteButtons";
+import { CSSProperties, type SetStateAction, type Dispatch, useState } from "react";
+import { Mic, MicOff, Video, VideoOff } from "lucide-react";
+import { useVideoState, useAudioState } from "@zoom/videosdk-react";
 import { PhoneOff } from "lucide-react";
 import { Button } from "./ui/button";
+import { useSession, useSessionUsers, VideoPlayerComponent, VideoPlayerContainerComponent } from "@zoom/videosdk-react";
 
-const Videochat = (props: { slug: string; JWT: string }) => {
-  const session = props.slug;
-  const jwt = props.JWT;
-  const [inSession, setInSession] = useState(false);
-  const client = ZoomVideo.createClient()
-  const [isVideoMuted, setIsVideoMuted] = useState(!client.getCurrentUserInfo()?.bVideoOn);
-  const [isAudioMuted, setIsAudioMuted] = useState(client.getCurrentUserInfo()?.muted ?? true);
-  const videoContainerRef = useRef<HTMLDivElement>(null);
+const Container = (props: { slug: string; JWT: string }) => {
+  const [inCall, setInCall] = useState(false);
+  return inCall ? (
+    <Videochat {...props} setInCall={setInCall} />
+  ) : (
+    <Button onClick={() => setInCall(true)}>Join session</Button>
+  )
+}
 
-  const joinSession = async () => {
-    await client.init("en-US", "Global", { patchJsMedia: true });
-    client.on("peer-video-state-change", renderVideo);
-    await client.join(session, jwt, userName).catch((e) => console.log(e));
-    setInSession(true);
-    const mediaStream = client.getMediaStream();
-    await mediaStream.startAudio();
-    setIsAudioMuted(mediaStream.isAudioMuted());
-    await mediaStream.startVideo();
-    setIsVideoMuted(!mediaStream.isCapturingVideo());
-    await renderVideo({ action: "Start", userId: client.getCurrentUserInfo().userId, });
-  };
+const Videochat = (props: { slug: string; JWT: string, setInCall: Dispatch<SetStateAction<boolean>> }) => {
+  const { slug: session, JWT, setInCall } = props;
+  const { isLoading, isError, isInSession, error } = useSession(session, JWT, userName);
+  const participants = useSessionUsers();
+  const { isVideoOn, toggleVideo } = useVideoState();
+  const { isAudioMuted, toggleMute } = useAudioState();
 
-  const renderVideo = async (event: { action: "Start" | "Stop"; userId: number; }) => {
-    const mediaStream = client.getMediaStream();
-    if (event.action === "Stop") {
-      const element = await mediaStream.detachVideo(event.userId);
-      if (Array.isArray(element)) {
-        element.forEach((el) => el.remove())
-      } else {
-        if (element) element.remove();
-      }
-    } else {
-      const userVideo = await mediaStream.attachVideo(event.userId, VideoQuality.Video_360P);
-      videoContainerRef.current!.appendChild(userVideo as VideoPlayer);
-    }
-  };
-
-  const leaveSession = async () => {
-    client.off("peer-video-state-change", renderVideo);
-    await client.leave().catch((e) => console.log("leave error", e));
-    // hard refresh to clear the state
-    window.location.href = "/";
-  };
+  if (isLoading) return <div>Loading...</div>;
+  if (isError) return <div>Error: {error?.reason}</div>;
 
   return (
     <div className="flex h-full w-full flex-1 flex-col">
       <h1 className="text-center text-3xl font-bold mb-4 mt-0">
         Session: {session}
       </h1>
-      <div
-        className="flex w-full flex-1"
-        style={inSession ? {} : { display: "none" }}
-      >
-        {/* @ts-expect-error html component */}
-        <video-player-container ref={videoContainerRef} style={videoPlayerStyle} />
+      <div>
+        {isInSession && (
+          <VideoPlayerContainerComponent style={videoPlayerStyle}>
+            {participants.map(participant => (
+              <VideoPlayerComponent
+                key={participant.userId}
+                user={participant}
+              />
+            ))}
+          </VideoPlayerContainerComponent>
+        )}
       </div>
-      {!inSession ? (
-        <div className="mx-auto flex w-64 flex-col self-center">
-          <div className="w-4" />
-          <Button className="flex flex-1" onClick={joinSession} title="join session">
-            Join
+      <div className="flex w-full flex-col justify-around self-center">
+        <div className="mt-4 flex w-[30rem] flex-1 justify-around self-center rounded-md bg-white p-4">
+          <Button onClick={() => void toggleVideo()} title="camera">
+            {isVideoOn ? <Video /> : <VideoOff />}
+          </Button>
+          <Button onClick={toggleMute} title="microphone">
+            {isAudioMuted ? <MicOff /> : <Mic />}
+          </Button>
+          <Button onClick={() => setInCall(false)} title="leave session">
+            <PhoneOff />
           </Button>
         </div>
-      ) : (
-        <div className="flex w-full flex-col justify-around self-center">
-          <div className="mt-4 flex w-[30rem] flex-1 justify-around self-center rounded-md bg-white p-4">
-            <CameraButton
-              client={client}
-              isVideoMuted={isVideoMuted}
-              setIsVideoMuted={setIsVideoMuted}
-              renderVideo={renderVideo}
-            />
-            <MicButton
-              isAudioMuted={isAudioMuted}
-              client={client}
-              setIsAudioMuted={setIsAudioMuted}
-            />
-            <Button onClick={leaveSession} title="leave session">
-              <PhoneOff />
-            </Button>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
 
-export default Videochat;
+export default Container;
 
 const videoPlayerStyle = {
   height: "75vh",
