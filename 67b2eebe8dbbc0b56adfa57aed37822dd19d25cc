@@ -1,0 +1,21 @@
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.1.3",
+  "base_commit_sha": "67b2eebe8dbbc0b56adfa57aed37822dd19d25cc",
+  "prompts": {
+    "c7adeb4e2d0dedbd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "f863ca61-98f0-479b-9369-fd08501fd7a1",
+        "model": "default"
+      },
+      "human_author": "ekaansh <ekaansh68@gmail.com>",
+      "messages": [],
+      "total_additions": 464,
+      "total_deletions": 172,
+      "accepted_lines": 291,
+      "overriden_lines": 1
+    }
+  }
+}
