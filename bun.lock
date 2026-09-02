@@ -7,7 +7,7 @@
       "dependencies": {
         "@radix-ui/react-slot": "^1.2.4",
         "@types/jsrsasign": "^10.5.15",
-        "@zoom/videosdk": "^2.4.5",
+        "@zoom/videosdk": "^2.5.0",
         "@zoom/videosdk-react": "^0.0.2",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
@@ -311,7 +311,7 @@
 
     "@unrs/resolver-binding-win32-x64-msvc": ["@unrs/resolver-binding-win32-x64-msvc@1.12.2", "", { "os": "win32", "cpu": "x64" }, "sha512-nAB74NfSNKknqQ1RrYj6uz8FcXEomu/MATJZxh/x+BArzN2U3JbOYC0APYzUIGhVY3m5hRxA8VPNdPBoG8txlA=="],
 
-    "@zoom/videosdk": ["@zoom/videosdk@2.4.5", "", {}, "sha512-C73+Fe6vAG6lw9y0jd50R3bBbLn5hrPMINC5XsZwwvBJ4L3l/AOXyBXBAgXCz8squejLaoTPldqOeI2QIsoLtw=="],
+    "@zoom/videosdk": ["@zoom/videosdk@2.5.0", "", { "bin": { "videosdk": "bin/videosdk-cli.cjs" } }, "sha512-BL3vNdrjwdV/hYwhvRECQlKlwv4Pl8IX2+yNxUZwVmKL1fsLT8n4Zu20Szw4u/C612LAHpgCMaFBoLlUr3/ePw=="],
 
     "@zoom/videosdk-react": ["@zoom/videosdk-react@0.0.2", "", { "peerDependencies": { "@zoom/videosdk": "^2.3.5", "react": ">=18.0.0", "react-dom": ">=18.0.0" } }, "sha512-eIedcCPYyTMzE77kz0Do9/hRgp2EghOTkvnPGasRCc2g+rgsY41vzD6JKHCb1Z+BvC8Y5zqws0AgdvQIJ51TcQ=="],
 
